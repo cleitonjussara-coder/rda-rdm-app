@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Petermann">
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon-192.svg">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <title>Petermann</title>
 <style>
 /* ─────────────────────────────────────────────
@@ -89,7 +89,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   flex:1;overflow-y:auto;overflow-x:hidden;
   padding:0 0 calc(var(--nav-h) + var(--safe-bottom) + 8px);
   background:var(--bg);
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
 }
+/* entrada suave do conteúdo ao trocar de aba */
+#app-content > *{animation:viewIn .22s ease both}
 #app-content::-webkit-scrollbar{display:none}
 
 /* Bottom nav */
@@ -193,6 +197,7 @@ select.inp{cursor:pointer}
   background:var(--surface);border-radius:var(--radius);
   box-shadow:var(--shadow);overflow:hidden;
   border-left:4px solid var(--border);
+  content-visibility:auto;contain-intrinsic-size:auto 96px;
 }
 .nota-card[data-tipo="RDA"]{border-left-color:#40916C}
 .nota-card[data-tipo="RDM"]{border-left-color:var(--accent)}
@@ -246,9 +251,47 @@ select.inp{cursor:pointer}
 .export-btns{display:flex;gap:6px}
 .muted-p{color:var(--text2);font-size:13px;padding:8px 0}
 
-/* ─────────────────────────────────────────────
-   PERFIL
-──────────────────────────────────────────────*/
+.home-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 14px 10px}
+.home-card{background:var(--surface);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:4px;transition:transform .1s ease}
+.recent-item,.home-card{transition:transform .1s ease}
+.recent-item:active,.home-card:active{transform:scale(.98)}
+.home-card-icon{font-size:22px}
+.home-card-val{font-size:20px;font-weight:800;color:var(--primary-d)}
+.home-card-val.neg{color:var(--danger)}
+.home-card-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text2)}
+.home-card-sub{font-size:11px;color:var(--text2)}
+.bar-section{padding:4px 14px 10px}
+.bar-hd{font-size:13px;font-weight:700;color:var(--primary-d);margin-bottom:8px}
+.bar-item{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.bar-label{width:96px;font-size:12px;font-weight:600;color:var(--text);flex-shrink:0;text-align:right}
+.bar-track{flex:1;height:20px;background:var(--bg);border-radius:10px;overflow:hidden}
+.bar-fill{height:100%;border-radius:10px;transition:width .5s ease}
+.bar-fill.r1{background:var(--accent-d)}
+.bar-fill.r2{background:var(--accent)}
+.bar-fill.r3{background:var(--secondary)}
+.bar-val{font-size:11px;font-weight:700;color:var(--text2);width:64px;flex-shrink:0}
+.evo-section{padding:4px 14px 10px}
+.evo-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+.evo-card{scroll-snap-align:start}
+.evo-row::-webkit-scrollbar{display:none}
+.evo-card{flex:0 0 98px;background:var(--surface);border-radius:var(--radius-sm);padding:10px;text-align:center;box-shadow:var(--shadow)}
+.evo-mes{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px}
+.evo-rdm{font-size:13px;font-weight:800;color:var(--accent-d);margin-bottom:1px}
+.evo-rda{font-size:13px;font-weight:800;color:var(--primary)}
+.recent-section{padding:4px 14px 12px}
+.recent-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.recent-hd span{font-size:13px;font-weight:700;color:var(--primary-d)}
+.recent-hd a{font-size:12px;font-weight:600;color:var(--primary);cursor:pointer;text-decoration:none}
+.recent-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.recent-item:last-child{border-bottom:none}
+.recent-info{flex:1;min-width:0}
+.recent-tit{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recent-sub{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recent-val{font-size:13px;font-weight:700;flex-shrink:0}
+.recent-val.rda{color:var(--primary)}
+.recent-val.rdm{color:var(--accent-d)}
+
+/* Perfil */
 .perfil-card{
   background:var(--surface);margin:8px 14px;border-radius:var(--radius);
   padding:20px;text-align:center;box-shadow:var(--shadow)
@@ -307,14 +350,20 @@ select.inp{cursor:pointer}
 .bottom-sheet{
   position:fixed;inset:0;z-index:50;
   background:rgba(0,0,0,.45);
-  display:none;align-items:flex-end;
+  display:flex;align-items:flex-end;
+  opacity:0;visibility:hidden;
+  transition:opacity .25s ease, visibility .25s;
 }
-.bottom-sheet.open{display:flex}
+.bottom-sheet.open{opacity:1;visibility:visible}
 .sheet-card{
   width:100%;background:var(--surface);
   border-radius:20px 20px 0 0;
   padding:20px 20px calc(20px + var(--safe-bottom));
+  transform:translateY(100%);
+  transition:transform .32s cubic-bezier(.32,.72,0,1);
+  will-change:transform;
 }
+.bottom-sheet.open .sheet-card{transform:translateY(0)}
 .sheet-handle{width:40px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 16px}
 .sheet-title{font-size:17px;font-weight:800;color:var(--primary-d);margin-bottom:16px;text-align:center}
 .capture-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -360,6 +409,8 @@ select.inp{cursor:pointer}
   background:rgba(0,0,0,.75);display:none;
   flex-direction:column;align-items:center;justify-content:center;gap:16px;
 }
+#ocr-overlay[style*="flex"],#qr-overlay[style*="flex"],
+#foto-viewer-overlay[style*="flex"],.modal-overlay{animation:overlayFade .2s ease}
 #ocr-progress{color:#fff;font-size:15px;font-weight:600}
 .ocr-spin{width:48px;height:48px;border:4px solid rgba(255,255,255,.2);
           border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite}
@@ -372,6 +423,7 @@ select.inp{cursor:pointer}
   background:var(--bg);display:none;flex-direction:column;
   overflow:hidden;
 }
+.full-overlay[style*="flex"]{animation:fullIn .26s cubic-bezier(.32,.72,0,1)}
 .form-hdr{
   background:var(--primary);color:#fff;
   display:flex;align-items:center;gap:8px;padding:12px 16px;
@@ -379,7 +431,7 @@ select.inp{cursor:pointer}
   flex-shrink:0;
 }
 .form-hdr h3{flex:1;font-size:17px;font-weight:800}
-.form-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.form-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
 .form-body::-webkit-scrollbar{display:none}
 .field-row{display:flex;gap:10px}
 .field-row .field{flex:1;min-width:0}
@@ -450,8 +502,28 @@ select.inp{cursor:pointer}
   display:flex;align-items:center;justify-content:center;
 }
 
+/* Ajuda / Como usar */
+.ajuda-sec{background:var(--surface);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
+.ajuda-sec h4{font-size:15.5px;font-weight:800;color:var(--primary-d);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.ajuda-sec p{font-size:14px;color:var(--text);line-height:1.55;margin-bottom:6px}
+.ajuda-sec p:last-child{margin-bottom:0}
+.ajuda-sec ul{padding-left:18px;display:flex;flex-direction:column;gap:5px;margin-top:2px}
+.ajuda-sec li{font-size:14px;color:var(--text);line-height:1.5}
+.ajuda-sec b{color:var(--primary-d)}
+.ajuda-note{background:#FFF7E6;border:1px solid var(--warning);border-radius:var(--radius-sm);
+            padding:10px 12px;font-size:13px;color:#7a5a00;line-height:1.5}
+.ajuda-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fullIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes overlayFade{from{opacity:0}to{opacity:1}}
+
+/* Acessibilidade / desempenho: respeita "reduzir movimento" */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
 </style>
 </head>
 <body>
@@ -460,12 +532,7 @@ select.inp{cursor:pointer}
 <div id="auth-screen" class="screen">
   <div class="auth-wrap">
     <div class="auth-logo">
-      <svg viewBox="0 0 64 64" fill="none">
-        <circle cx="32" cy="32" r="32" fill="#40916C"/>
-        <path d="M16 44 C16 28 28 18 32 18 C36 18 48 28 48 44" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
-        <path d="M22 44 C22 34 28 26 32 26 C36 26 42 34 42 44" stroke="#D8F3DC" stroke-width="2.5" stroke-linecap="round"/>
-        <circle cx="32" cy="38" r="5" fill="#fff"/>
-      </svg>
+      <img src="logo.jpg" alt="Petermann" style="width:80px;height:80px;border-radius:18px;object-fit:cover">
       <div class="auth-logo-text">Petermann <span>App</span></div>
     </div>
     <div id="auth-body"></div>
@@ -477,16 +544,26 @@ select.inp{cursor:pointer}
   <div id="demo-banner">⚠️ Modo demonstração — dados salvos apenas neste dispositivo</div>
   <header id="app-header">
     <div class="hdr-logo">Petermann <span>App</span></div>
-    <div class="sync-indicator">
-      <div class="sync-dot online" id="sync-dot"></div>
-      <span id="sync-txt">online</span>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="sync-indicator">
+        <div class="sync-dot online" id="sync-dot"></div>
+        <span id="sync-txt">online</span>
+      </div>
+      <div id="drive-badge" class="sync-indicator" style="display:none;cursor:pointer" onclick="switchView('perfil')" title="Google Drive">
+        <span id="drive-dot" style="width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0"></span>
+        <span id="drive-txt" style="font-size:11px">Drive</span>
+      </div>
     </div>
   </header>
 
   <main id="app-content"></main>
 
   <nav id="bottom-nav">
-    <button class="nav-btn active" data-view="notas" onclick="switchView('notas')">
+    <button class="nav-btn active" data-view="home" onclick="switchView('home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </button>
+    <button class="nav-btn" data-view="notas" onclick="switchView('notas')">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       Notas
     </button>
@@ -534,6 +611,16 @@ select.inp{cursor:pointer}
         <div class="cap-label">Repasse</div>
         <div class="cap-desc">PIX / transferência</div>
       </div>
+      <div class="cap-opt" onclick="fecharCaptura();iniciarChaveNFCe()">
+        <div class="cap-icon">🔑</div>
+        <div class="cap-label">Chave NF-e/NFC-e</div>
+        <div class="cap-desc">Digitar chave de 44 dígitos</div>
+      </div>
+      <div class="cap-opt" onclick="iniciarBarcode()">
+        <div class="cap-icon">📊</div>
+        <div class="cap-label">Cód. Barras</div>
+        <div class="cap-desc">Chave da NF-e (DANFE)</div>
+      </div>
     </div>
   </div>
 </div>
@@ -547,7 +634,7 @@ select.inp{cursor:pointer}
     <p class="qr-hint">Aponte para o QR Code da NFCe</p>
     <div id="qr-status-txt"></div>
   </div>
-  <button class="btn-overlay-close" onclick="fecharQR()">✕</button>
+  <button class="btn-overlay-close" onclick="fecharQR();fecharBarcode()">✕</button>
 </div>
 
 <!-- ═══════════ OCR OVERLAY ═══════════ -->
@@ -618,6 +705,9 @@ select.inp{cursor:pointer}
       <textarea class="inp" id="nf-obs" rows="2" placeholder="Opcional"></textarea>
     </div>
 
+    <a id="nf-consulta" style="display:none;align-self:flex-start;font-size:13.5px;color:var(--primary);
+       font-weight:600;text-decoration:underline;cursor:pointer">🔗 Consultar nota no SEFAZ</a>
+
     <div class="field">
       <label class="lbl">Foto da nota</label>
       <div class="foto-area">
@@ -625,7 +715,7 @@ select.inp{cursor:pointer}
                onchange="onFotoNotaChange(event)">
         <div class="foto-btn-wrap" onclick="$('f-foto-nota').click()">
           <span id="btn-foto-label">📷 Anexar foto</span>
-          <span style="font-size:11px;color:var(--text2)">Toque para abrir câmera</span>
+          <span style="font-size:11px;color:var(--text2)">Toque para abrir a câmera — leio o valor e a empresa da foto</span>
           <div id="foto-preview"></div>
         </div>
       </div>
@@ -676,6 +766,99 @@ select.inp{cursor:pointer}
   </div>
 </div>
 
+<!-- ═══════════ AJUDA / COMO USAR ═══════════ -->
+<div id="ajuda-overlay" class="full-overlay">
+  <div class="form-hdr">
+    <button class="btn-icon-sm" style="color:#fff;font-size:22px" onclick="fecharAjuda()">←</button>
+    <h3>Como usar o app</h3>
+  </div>
+  <div class="form-body">
+
+    <div class="ajuda-sec">
+      <h4>📱 Instalar no celular</h4>
+      <p><b>Android (Chrome):</b> abra o link → menu (⋮) → <b>Adicionar à tela inicial</b>.</p>
+      <p><b>iPhone (Safari):</b> Compartilhar → <b>Adicionar à Tela de Início</b>.</p>
+      <p>Vira um app normal e funciona até <b>sem internet</b>. Ao usar a câmera, toque em <b>Permitir</b>.</p>
+    </div>
+
+    <div class="ajuda-sec">
+      <h4>🔑 Entrar e perfil</h4>
+      <p>Cadastre-se com e-mail e senha (mín. 6 caracteres) e confirme pelo <b>e-mail</b>. Depois faça login.</p>
+      <p>Em <b>Perfil</b>, informe seu <b>Nome</b> e <b>Núcleo</b> e salve.</p>
+    </div>
+
+    <div class="ajuda-sec">
+      <h4>👥 Papéis da equipe</h4>
+      <ul>
+        <li><b>Colaborador:</b> vê só as próprias notas.</li>
+        <li><b>Gestor:</b> vê todos do seu núcleo (aba <b>Equipe</b>).</li>
+        <li><b>Admin:</b> vê todos e edita papéis/núcleos.</li>
+      </ul>
+      <p>O admin promove os demais em <b>Equipe → ✏️ → escolher Papel/Núcleo → Salvar</b>.</p>
+    </div>
+
+    <div class="ajuda-sec">
+      <h4>➕ Lançar uma nota</h4>
+      <p>Toque no <b>+</b> e escolha:</p>
+      <ul>
+        <li>📷 <b>QR Code</b> — cupom NFC-e</li>
+        <li>📊 <b>Cód. Barras</b> — chave da NF-e (DANFE)</li>
+        <li>🔍 <b>Foto OCR</b> — fotografa e lê valor/empresa</li>
+        <li>🔑 <b>Chave</b> — colar os 44 dígitos</li>
+        <li>✏️ <b>Manual</b> · 💸 <b>Repasse</b></li>
+      </ul>
+      <p>Ao <b>anexar a foto</b> no formulário, o app lê a foto sozinho e completa os campos vazios. Confira e toque em <b>Salvar</b>.</p>
+      <p class="ajuda-note">⚠️ O <b>valor</b> não vem da chave (padrão da nota fiscal). Use a <b>foto</b> (lê o TOTAL) ou digite.</p>
+    </div>
+
+    <div class="ajuda-sec">
+      <h4>🔗 Consultar no SEFAZ</h4>
+      <p>Notas com chave mostram o botão <b>🔗</b> (na lista e no formulário) que abre a nota no site oficial — NF-e no Portal Nacional, NFC-e no portal do estado.</p>
+    </div>
+
+    <div class="ajuda-sec">
+      <h4>☁️ Envio para o servidor</h4>
+      <p>Tudo é salvo <b>primeiro no celular</b> e enviado depois — dá pra lançar <b>sem internet</b>.</p>
+      <p>Envia automático: ao <b>salvar</b>, ao <b>voltar a internet</b> e a cada <b>60 segundos</b>.</p>
+      <p>Indicador no topo:</p>
+      <ul>
+        <li><span class="ajuda-dot" style="background:#74C69D"></span> <b>online</b> — conectado</li>
+        <li><span class="ajuda-dot" style="background:#FFB703"></span> <b>sincronizando</b> — enviando</li>
+        <li><span class="ajuda-dot" style="background:#E63946"></span> <b>offline</b> — guardado no celular</li>
+        <li>⏳ na nota — ainda não enviada (vai sozinho quando voltar a internet)</li>
+      </ul>
+      <p>Fotos vão para o servidor e, se conectado em <b>Perfil → Google Drive</b>, também para a pasta na nuvem.</p>
+    </div>
+
+    <div class="ajuda-sec">
+      <h4>💡 Dicas</h4>
+      <ul>
+        <li>Confira o <b>valor</b> antes de salvar.</li>
+        <li>Foto boa: luz, cupom reto e enquadrado inteiro (QR/código visível).</li>
+        <li>Lançou offline? Confirme depois que o <b>⏳</b> sumiu.</li>
+        <li>Use as setas <b>‹ ›</b> para trocar de mês.</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ FOTO VIEWER ═══════════ -->
+<div id="foto-viewer-overlay" onclick="if(event.target===this)fecharFotoViewer()"
+     style="display:none;position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.93);
+            flex-direction:column;align-items:center;justify-content:center;gap:14px">
+  <button onclick="fecharFotoViewer()"
+          style="position:absolute;top:calc(16px + env(safe-area-inset-top,0px));right:16px;
+                 background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:50%;
+                 width:44px;height:44px;font-size:22px;cursor:pointer;display:flex;
+                 align-items:center;justify-content:center">✕</button>
+  <img id="foto-viewer-img" src="" alt="Foto da nota"
+       style="max-width:95vw;max-height:78vh;object-fit:contain;border-radius:10px;
+              box-shadow:0 4px 30px rgba(0,0,0,.6)">
+  <div id="foto-viewer-info"
+       style="color:rgba(255,255,255,.75);font-size:13px;text-align:center;padding:0 16px"></div>
+</div>
+
 <!-- ═══════════ LOADING / TOAST ═══════════ -->
 <div id="loading-overlay" style="display:none">
   <div class="spin"></div>
@@ -683,17 +866,19 @@ select.inp{cursor:pointer}
 <div id="toast"></div>
 
 <!-- ═══════════ SCRIPTS ═══════════ -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-<script src="js/db.js"></script>
-<script src="js/nfce.js"></script>
-<script src="js/brasilapi.js"></script>
-<script src="js/ocr.js"></script>
-<script src="js/excel.js"></script>
-<script src="js/gestor.js"></script>
-<script src="js/app.js"></script>
+<!-- Supabase e jsQR carregados no boot (essenciais) -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<!-- Tesseract, Quagga e SheetJS sao carregados sob demanda (lazy) p/ nao travar a abertura -->
+<script defer src="js/db.js"></script>
+<script defer src="js/nfce.js"></script>
+<script defer src="js/sefaz.js"></script>
+<script defer src="js/brasilapi.js"></script>
+<script defer src="js/ocr.js"></script>
+<script defer src="js/excel.js"></script>
+<script defer src="js/gestor.js"></script>
+<script defer src="js/gdrive.js"></script>
+<script defer src="js/app.js"></script>
 
 <!-- Service Worker -->
 <script>

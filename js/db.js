@@ -146,6 +146,17 @@ window.DB = (() => {
     if (r) await _put('repasses', { ...r, deleted: true, synced: false, updated_at: new Date().toISOString() });
   }
 
+  /* ── Merge dados vindos do Drive (Drive vence se mais recente) */
+  async function upsertFromDrive(store, records) {
+    for (const rec of (records || [])) {
+      if (!rec.id) continue;
+      const local = await _get(store, rec.id);
+      if (!local || new Date(rec.updated_at || 0) >= new Date(local.updated_at || 0)) {
+        await _put(store, { ...rec, synced: true, foto_local: local?.foto_local ?? null });
+      }
+    }
+  }
+
   /* ── SYNC ────────────────────────────────────────────── */
   let _running = false;
 
@@ -158,6 +169,7 @@ window.DB = (() => {
     for (const n of allN.filter(x => !x.synced)) {
       const payload = { ...n };
       delete payload.foto_local; // não sobe o blob
+      delete payload.synced;     // coluna só existe localmente (IndexedDB)
       try {
         const { error } = await sb.from('notas').upsert(payload);
         if (!error) { await _put('notas', { ...n, synced: true }); ok++; }
@@ -181,8 +193,10 @@ window.DB = (() => {
 
     // Repasses
     for (const r of allR.filter(x => !x.synced)) {
+      const payload = { ...r };
+      delete payload.synced;     // coluna só existe localmente (IndexedDB)
       try {
-        const { error } = await sb.from('repasses').upsert(r);
+        const { error } = await sb.from('repasses').upsert(payload);
         if (!error) { await _put('repasses', { ...r, synced: true }); ok++; }
         else fail++;
       } catch (_) { fail++; }
@@ -245,6 +259,7 @@ window.DB = (() => {
     saveNota, getNotasUser, softDeleteNota,
     saveFotoLocal, getFotoLocal,
     saveRepasse, getRepassesUser, softDeleteRepasse,
+    upsertFromDrive,
     sync, setupAutoSync, getMeta, setMeta,
   };
 })();
